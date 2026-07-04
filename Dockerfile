@@ -3,7 +3,7 @@ LABEL authors="Lennard Bernet, Lino Steiner"
 
 RUN "$JAVA_HOME/bin/jlink" \
          --verbose \
-         --add-modules java.base,java.logging,java.naming,java.management,java.instrument,java.sql,java.desktop,java.xml,java.security.jgss,java.net.http,jdk.crypto.ec,jdk.unsupported \
+         --add-modules java.base,java.logging,java.naming,java.management,java.instrument,java.sql,java.desktop,java.xml,java.security.jgss,java.net.http,jdk.crypto.ec,jdk.unsupported,java.compiler \
          --strip-debug --no-man-pages --no-header-files --compress=2 \
          --output /optimized-jdk-25
 
