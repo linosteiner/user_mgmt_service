@@ -15,7 +15,7 @@ services:
       JWT_EXPIRATION_MILLIS: 3600000
 
   postgres:
-    image: postgres:12.2-alpine
+    image: postgres:16-alpine
     restart: always
     ports: [ "5433:5432" ]
     volumes:
