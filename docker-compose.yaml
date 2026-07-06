@@ -13,12 +13,11 @@ services:
       #      JWT_ISSUER:
       #      JWT_SECRET:
       JWT_EXPIRATION_MILLIS: 3600000
-
   postgres:
     image: postgres:16-alpine
     restart: always
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 10s
@@ -28,3 +27,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+
+volumes:
+  pgdata:
