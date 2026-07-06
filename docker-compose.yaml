@@ -1,17 +1,16 @@
 services:
   traefik:
     image: traefik:v3.7
-    command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--entrypoints.web.address=:80"
     ports:
       - "80:80"
+      - "443:443"
       - "8080:8080"
     networks:
       - user-mgmt-service-network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yaml:/etc/traefik/traefik.yaml:ro
+      - letsencrypt-data:/letsencrypt
 
   user-mgmt-service:
     image: xxpirl2knc5/user_mgmt_service:latest
@@ -19,9 +18,20 @@ services:
       - user-mgmt-service-network
     labels:
       - "traefik.enable=true"
+      # HTTP router - redirects to HTTPS
+      - "traefik.http.routers.user-mgmt-service-web.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.user-mgmt-service-web.entrypoints=web"
+      - "traefik.http.routers.user-mgmt-service-web.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+
+      # HTTPS router - actual service traffic
       - "traefik.http.routers.user-mgmt-service.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.user-mgmt-service.entrypoints=websecure"
+      - "traefik.http.routers.user-mgmt-service.tls=true"
+      - "traefik.http.routers.user-mgmt-service.tls.certresolver=letsencrypt"
       - "traefik.http.routers.user-mgmt-service.middlewares=user-mgmt-strip-api"
       - "traefik.http.middlewares.user-mgmt-strip-api.stripprefix.prefixes=/api"
+
       - "traefik.http.services.user-mgmt-service.loadbalancer.server.port=8080"
     depends_on:
       postgres:
@@ -53,3 +63,6 @@ services:
 
 networks:
   user-mgmt-service-network:
+
+volumes:
+  letsencrypt-data:
