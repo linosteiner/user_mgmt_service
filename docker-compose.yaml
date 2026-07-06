@@ -1,7 +1,28 @@
 services:
+  traefik:
+    image: traefik:v3.7
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    networks:
+      - user-mgmt-service-network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
   user-mgmt-service:
-    image: bernetlennard/user_mgmt_service:latest
-    ports: [ "8080:8080" ]
+    image: xxpirl2knc5/user_mgmt_service:latest
+    networks:
+      - user-mgmt-service-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.user-mgmt-service.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.user-mgmt-service.middlewares=user-mgmt-strip-api"
+      - "traefik.http.middlewares.user-mgmt-strip-api.stripprefix.prefixes=/api"
+      - "traefik.http.services.user-mgmt-service.loadbalancer.server.port=8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -15,9 +36,11 @@ services:
       JWT_EXPIRATION_MILLIS: 3600000
   postgres:
     image: postgres:16-alpine
+    networks:
+      - user-mgmt-service-network
     restart: always
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - /var/lib/postgresql/data:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 10s
@@ -28,5 +51,5 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
 
-volumes:
-  pgdata:
+networks:
+  user-mgmt-service-network:
