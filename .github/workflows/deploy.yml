@@ -47,8 +47,9 @@ jobs:
           host: ${{ secrets.DROPLET_HOST }}
           username: ${{ secrets.DROPLET_USERNAME }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
+          script_stop: true
           script: |
             cd ${{ secrets.DEPLOY_PATH }}
-            docker compose pull user-mgmt-service
-            docker compose up -d user-mgmt-service
+            docker compose pull
+            docker compose up -d
             docker image prune -f

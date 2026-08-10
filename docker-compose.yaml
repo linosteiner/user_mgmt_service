@@ -4,7 +4,6 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"
     networks:
       - user-mgmt-service-network
     volumes:
@@ -19,13 +18,13 @@ services:
     labels:
       - "traefik.enable=true"
       # HTTP router - redirects to HTTPS
-      - "traefik.http.routers.user-mgmt-service-web.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.user-mgmt-service-web.rule=Host(`vcs.linosteiner.ch`) && PathPrefix(`/api`)"
       - "traefik.http.routers.user-mgmt-service-web.entrypoints=web"
       - "traefik.http.routers.user-mgmt-service-web.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
       # HTTPS router - actual service traffic
-      - "traefik.http.routers.user-mgmt-service.rule=PathPrefix(`/api`)"
+      - "traefik.http.routers.user-mgmt-service.rule=Host(`vcs.linosteiner.ch`) && PathPrefix(`/api`)"
       - "traefik.http.routers.user-mgmt-service.entrypoints=websecure"
       - "traefik.http.routers.user-mgmt-service.tls=true"
       - "traefik.http.routers.user-mgmt-service.tls.certresolver=letsencrypt"
