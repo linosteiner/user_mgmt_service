@@ -2,7 +2,7 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
 
 permissions:
   contents: read
@@ -42,14 +42,27 @@ jobs:
     needs: build-and-push-list
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to droplet
-        uses: appleboy/ssh-action@v1.2.0
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Copy compose files to droplet
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: ${{ secrets.DROPLET_USERNAME }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
-          script_stop: true
+          source: "docker-compose.yaml,traefik.yaml"
+          target: ${{ secrets.DEPLOY_PATH }}
+          overwrite: true
+
+      - name: Deploy to droplet
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USERNAME }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
           script: |
+            set -e
             cd ${{ secrets.DEPLOY_PATH }}
             docker compose pull
             docker compose up -d
@@ -88,13 +101,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Copy docker-compose file to droplet
-        uses: appleboy/scp-action@v0.1.7
+      - name: Copy compose files to droplet
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.DROPLET_HOST_LEBE }}
           username: ${{ secrets.DROPLET_USERNAME_LEBE }}
           key: ${{ secrets.DROPLET_SSH_KEY_LEBE }}
-          source: "docker-compose.yaml" # Ensure this matches your file's exact name
+          source: "docker-compose.yaml,traefik.yaml"
           target: ${{ secrets.DEPLOY_PATH_LEBE }}
 
       - name: Deploy to droplet
@@ -103,8 +116,8 @@ jobs:
           host: ${{ secrets.DROPLET_HOST_LEBE }}
           username: ${{ secrets.DROPLET_USERNAME_LEBE }}
           key: ${{ secrets.DROPLET_SSH_KEY_LEBE }}
-          script_stop: true
           script: |
+            set -e
             cd ${{ secrets.DEPLOY_PATH_LEBE }}
             docker compose pull
             docker compose up -d
