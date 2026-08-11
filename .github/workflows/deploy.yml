@@ -11,6 +11,7 @@ env:
   IMAGE_NAME_LIST: xxpirl2knc5/user_mgmt_service
   IMAGE_NAME_LEBE: bernetlennard/user_mgmt_service
 
+jobs:
   build-and-push-lebe:
     runs-on: ubuntu-latest
     steps:
