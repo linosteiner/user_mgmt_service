@@ -85,6 +85,18 @@ jobs:
     needs: build-and-push-lebe
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Copy docker-compose file to droplet
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DROPLET_HOST_LEBE }}
+          username: ${{ secrets.DROPLET_USERNAME_LEBE }}
+          key: ${{ secrets.DROPLET_SSH_KEY_LEBE }}
+          source: "docker-compose.yml" # Ensure this matches your file's exact name
+          target: ${{ secrets.DEPLOY_PATH_LEBE }}
+
       - name: Deploy to droplet
         uses: appleboy/ssh-action@v1.2.5
         with:
