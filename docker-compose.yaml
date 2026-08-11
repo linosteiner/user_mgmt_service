@@ -21,6 +21,7 @@ services:
       - "traefik.http.routers.user-mgmt-service-web.rule=Host(`${TRAEFIK_HOST}`) && PathPrefix(`/api`)"
       - "traefik.http.routers.user-mgmt-service-web.entrypoints=web"
       - "traefik.http.routers.user-mgmt-service-web.middlewares=redirect-to-https"
+      - "traefik.http.routers.user-mgmt-service-web.priority=10"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
       # HTTPS router - actual service traffic
@@ -29,6 +30,7 @@ services:
       - "traefik.http.routers.user-mgmt-service.tls=true"
       - "traefik.http.routers.user-mgmt-service.tls.certresolver=letsencrypt"
       - "traefik.http.routers.user-mgmt-service.middlewares=user-mgmt-strip-api"
+      - "traefik.http.routers.user-mgmt-service.priority=10"
       - "traefik.http.middlewares.user-mgmt-strip-api.stripprefix.prefixes=/api"
 
       - "traefik.http.services.user-mgmt-service.loadbalancer.server.port=8080"
@@ -43,6 +45,32 @@ services:
       JWT_ISSUER: ${JWT_ISSUER}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION_MILLIS: 3600000
+  auth-portal:
+    build:
+      context: ../auth_portal
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://${TRAEFIK_HOST}/api
+    image: xxpirl2knc5/auth_portal:latest
+    networks:
+      - user-mgmt-service-network
+    labels:
+      - "traefik.enable=true"
+      # HTTP router - redirects to HTTPS
+      - "traefik.http.routers.auth-portal-web.rule=Host(`${TRAEFIK_HOST}`)"
+      - "traefik.http.routers.auth-portal-web.entrypoints=web"
+      - "traefik.http.routers.auth-portal-web.middlewares=redirect-to-https"
+      - "traefik.http.routers.auth-portal-web.priority=1"
+
+      # HTTPS router - actual service traffic
+      - "traefik.http.routers.auth-portal.rule=Host(`${TRAEFIK_HOST}`)"
+      - "traefik.http.routers.auth-portal.entrypoints=websecure"
+      - "traefik.http.routers.auth-portal.tls=true"
+      - "traefik.http.routers.auth-portal.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.auth-portal.priority=1"
+
+      - "traefik.http.services.auth-portal.loadbalancer.server.port=3000"
+
   postgres:
     image: postgres:16-alpine
     networks:

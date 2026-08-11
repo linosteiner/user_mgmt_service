@@ -1,0 +1,52 @@
+# Gradle
+.gradle
+build
+gradle/wrapper/gradle-wrapper.jar
+gradlew
+gradlew.bat
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea
+*.iml
+*.iws
+*.ipr
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Testing
+src/test
+coverage
+*.test.*
+*.spec.*
+
+# Logs
+logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+*.md
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# CI/CD
+.github
+
+# Infrastructure
+traefik.yaml
+pgdata
