@@ -94,7 +94,7 @@ jobs:
           host: ${{ secrets.DROPLET_HOST_LEBE }}
           username: ${{ secrets.DROPLET_USERNAME_LEBE }}
           key: ${{ secrets.DROPLET_SSH_KEY_LEBE }}
-          source: "docker-compose.yml" # Ensure this matches your file's exact name
+          source: "docker-compose.yaml" # Ensure this matches your file's exact name
           target: ${{ secrets.DEPLOY_PATH_LEBE }}
 
       - name: Deploy to droplet
