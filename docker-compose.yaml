@@ -32,6 +32,7 @@ services:
       - "traefik.http.middlewares.user-mgmt-strip-api.stripprefix.prefixes=/api"
 
       - "traefik.http.services.user-mgmt-service.loadbalancer.server.port=8080"
+      - "traefik.http.routers.user-mgmt-service-web.middlewares=user-mgmt-strip-api"
     depends_on:
       postgres:
         condition: service_healthy
