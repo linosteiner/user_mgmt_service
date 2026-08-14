@@ -47,8 +47,6 @@ services:
       JWT_EXPIRATION_MILLIS: 3600000
   auth-portal:
     build:
-      context: ../auth_portal
-      dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: https://${TRAEFIK_HOST}/api
     image: xxpirl2knc5/auth_portal:latest
