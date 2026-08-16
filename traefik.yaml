@@ -3,6 +3,11 @@ entryPoints:
     address: ":80"
   websecure:
     address: ":443"
+  traefik:
+    address: ":8080"
+
+api:
+  dashboard: true
 
 providers:
   docker:

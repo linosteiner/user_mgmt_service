@@ -4,12 +4,24 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "8080:8080"
     networks:
       - user-mgmt-service-network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik.yaml:/etc/traefik/traefik.yaml:ro
       - letsencrypt-data:/letsencrypt
+    labels:
+      - "traefik.enable=true"
+      # Dashboard - served on its own entrypoint so it never competes with
+      # the backend's Host()+PathPrefix(/api) router on web/websecure.
+      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_HOST}`)"
+      - "traefik.http.routers.dashboard.entrypoints=traefik"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
 
   user-mgmt-service:
     image: xxpirl2knc5/user_mgmt_service:latest
