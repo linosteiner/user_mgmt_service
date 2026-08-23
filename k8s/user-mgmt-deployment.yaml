@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-mgmt-service
+  labels:
+    app: user-mgmt-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-mgmt-service
+  template:
+    metadata:
+      labels:
+        app: user-mgmt-service
+    spec:
+      containers:
+        - name: user-mgmt-service
+          image: xxpirl2knc5/user_mgmt_service:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_DB
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/$(POSTGRES_DB)
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: create-drop
+            - name: JWT_ISSUER
+              valueFrom:
+                configMapKeyRef:
+                  name: user-mgmt-config
+                  key: JWT_ISSUER
+            - name: JWT_EXPIRATION_MILLIS
+              valueFrom:
+                configMapKeyRef:
+                  name: user-mgmt-config
+                  key: JWT_EXPIRATION_MILLIS
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: user-mgmt-secret
+                  key: JWT_SECRET
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
