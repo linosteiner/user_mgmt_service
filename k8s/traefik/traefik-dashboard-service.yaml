@@ -1,0 +1,15 @@
+# Bewusst ClusterIP und nicht Teil des LoadBalancers: das Dashboard laeuft mit
+# api.insecure=true (ohne Auth) und darf daher nicht oeffentlich erreichbar sein.
+# Zugriff nur ueber: kubectl port-forward svc/traefik-dashboard 8080:8080
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-dashboard
+spec:
+  type: ClusterIP
+  selector:
+    app: traefik
+  ports:
+    - name: dashboard
+      port: 8080
+      targetPort: 8080

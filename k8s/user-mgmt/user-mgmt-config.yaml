@@ -6,3 +6,8 @@ data:
   JWT_ISSUER: user-mgmt-service
   JWT_EXPIRATION_MILLIS: "3600000"
   SPRING_JPA_HIBERNATE_DDL_AUTO: update
+  # Backend serviert selbst unter /api, damit der Ingress ohne stripPrefix
+  # auskommt (das waere in k8s eine Traefik-Middleware-CRD).
+  SERVER_SERVLET_CONTEXT_PATH: /api
+  # Heap am Container-Limit ausrichten statt am Host-RAM (Node hat nur 2Gi).
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=60"

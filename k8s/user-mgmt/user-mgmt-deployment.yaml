@@ -6,6 +6,10 @@ metadata:
     app: user-mgmt-service
 spec:
   replicas: 1
+  # Recreate statt RollingUpdate: der Node ist zu klein, um waehrend eines
+  # Rollouts kurzzeitig zwei Pods gleichzeitig zu tragen.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: user-mgmt-service
@@ -57,3 +61,19 @@ spec:
                 secretKeyRef:
                   name: user-mgmt-secret
                   key: JWT_SECRET
+            - name: SERVER_SERVLET_CONTEXT_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: user-mgmt-config
+                  key: SERVER_SERVLET_CONTEXT_PATH
+            - name: JAVA_TOOL_OPTIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: user-mgmt-config
+                  key: JAVA_TOOL_OPTIONS
+          resources:
+            requests:
+              cpu: 100m
+              memory: 384Mi
+            limits:
+              memory: 700Mi

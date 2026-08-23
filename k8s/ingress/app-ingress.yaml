@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app-ingress
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - vcs.linosteiner.ch
+  rules:
+    - host: vcs.linosteiner.ch
+      http:
+        paths:
+          # Laengster Prefix gewinnt: /api landet beim Backend, alles andere
+          # beim Frontend. Kein stripPrefix noetig - das Backend serviert
+          # selbst unter /api (SERVER_SERVLET_CONTEXT_PATH).
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: user-mgmt-service
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-portal
+                port:
+                  number: 3000

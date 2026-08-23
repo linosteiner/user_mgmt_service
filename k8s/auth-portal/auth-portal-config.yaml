@@ -1,0 +1,11 @@
+# NEXT_PUBLIC_API_URL steht hier bewusst NICHT drin: Next.js kompiliert
+# NEXT_PUBLIC_*-Variablen zur Build-Zeit ins Client-Bundle ein. Im Image
+# xxpirl2knc5/auth_portal:latest ist fest https://vcs.linosteiner.ch/api
+# eingebacken - eine env-Variable zur Laufzeit haette keinerlei Wirkung.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-portal-config
+data:
+  PORT: "3000"
+  NODE_ENV: production

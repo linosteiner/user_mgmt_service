@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-portal
+  labels:
+    app: auth-portal
+spec:
+  replicas: 1
+  # Recreate statt RollingUpdate: der Node ist zu klein, um waehrend eines
+  # Rollouts kurzzeitig zwei Pods gleichzeitig zu tragen.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: auth-portal
+  template:
+    metadata:
+      labels:
+        app: auth-portal
+    spec:
+      containers:
+        - name: auth-portal
+          image: xxpirl2knc5/auth_portal:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: auth-portal-config
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
