@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-mgmt-config
+data:
+  JWT_ISSUER: user-mgmt-service
+  JWT_EXPIRATION_MILLIS: "3600000"
