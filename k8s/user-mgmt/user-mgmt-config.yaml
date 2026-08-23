@@ -5,3 +5,4 @@ metadata:
 data:
   JWT_ISSUER: user-mgmt-service
   JWT_EXPIRATION_MILLIS: "3600000"
+  SPRING_JPA_HIBERNATE_DDL_AUTO: update

@@ -20,11 +20,13 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: SPRING_DATASOURCE_URL
+            - name: POSTGRES_DB
               valueFrom:
                 configMapKeyRef:
                   name: postgres-config
-                  key: SPRING_DATASOURCE_URL
+                  key: POSTGRES_DB
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres:5432/$(POSTGRES_DB)
             - name: SPRING_DATASOURCE_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -36,7 +38,10 @@ spec:
                   name: postgres-secret
                   key: POSTGRES_PASSWORD
             - name: SPRING_JPA_HIBERNATE_DDL_AUTO
-              value: create-drop
+              valueFrom:
+                configMapKeyRef:
+                  name: user-mgmt-config
+                  key: SPRING_JPA_HIBERNATE_DDL_AUTO
             - name: JWT_ISSUER
               valueFrom:
                 configMapKeyRef:
@@ -52,13 +57,3 @@ spec:
                 secretKeyRef:
                   name: user-mgmt-secret
                   key: JWT_SECRET
-          readinessProbe:
-            tcpSocket:
-              port: 8080
-            initialDelaySeconds: 20
-            periodSeconds: 10
-          livenessProbe:
-            tcpSocket:
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 20

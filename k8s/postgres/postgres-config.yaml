@@ -3,4 +3,4 @@ kind: ConfigMap
 metadata:
   name: postgres-config
 data:
-  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/user_mgmt_db
+  POSTGRES_DB: user_mgmt_db
