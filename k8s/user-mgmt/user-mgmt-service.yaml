@@ -1,3 +1,9 @@
+# Internal address of the backend: `user-mgmt-service:8080`. The Ingress routes /api
+# here by naming this Service.
+#
+# The Service and the Deployment share a name, which is legal -- they are different
+# kinds of object. What actually links this Service to those pods is the `selector`
+# below matching the pods' labels, nothing else.
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,5 +13,6 @@ spec:
   selector:
     app: user-mgmt-service
   ports:
-    - port: 8080
+    - name: http
+      port: 8080
       targetPort: 8080

@@ -1,3 +1,8 @@
+# Deployment: declares "I want N pods running this container image" and keeps that
+# true. It creates a ReplicaSet, which creates the Pods.
+#
+# This is the ingress controller -- the only pod in the cluster that receives traffic
+# from the internet. Everything else is reached through it.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,8 +11,14 @@ metadata:
     app: traefik
 spec:
   replicas: 1
+  # Recreate = stop the old pod fully, then start the new one (brief downtime).
+  # Required here because the ACME PersistentVolumeClaim is ReadWriteOnce and cannot
+  # be mounted by two pods at once, which a RollingUpdate would need.
   strategy:
     type: Recreate
+  # The selector tells the Deployment which pods are "its own". It must match the
+  # labels in template.metadata.labels below. Note this field is IMMUTABLE -- to
+  # change it you must delete and recreate the Deployment.
   selector:
     matchLabels:
       app: traefik
@@ -16,12 +27,16 @@ spec:
       labels:
         app: traefik
     spec:
+      # Run as the identity from traefik-rbac.yaml, so Traefik may read Ingresses.
       serviceAccountName: traefik
       containers:
         - name: traefik
           image: traefik:v3.7
           args:
+            # Load the static config mounted from the ConfigMap below.
             - --configFile=/etc/traefik/traefik.yaml
+          # Naming ports is optional but makes `kubectl describe` and the Service
+          # definitions readable.
           ports:
             - name: web
               containerPort: 80
@@ -35,18 +50,28 @@ spec:
               readOnly: true
             - name: acme
               mountPath: /letsencrypt
+          # requests = what the scheduler reserves on the node (and what it uses to
+          # decide if the pod fits at all). limits = the hard ceiling; exceeding the
+          # memory limit gets the container OOM-killed.
+          # No CPU limit on purpose: CPU is throttled rather than killed, and a limit
+          # would only slow down startup bursts.
           resources:
             requests:
               cpu: 25m
               memory: 64Mi
             limits:
               memory: 128Mi
+          # readinessProbe = "may this pod receive traffic yet?". While it fails, the
+          # pod is removed from its Services' endpoints. Traefik is ready as soon as
+          # it is listening, so a TCP connect check is enough.
           readinessProbe:
             tcpSocket:
               port: 80
-            initialDelaySeconds: 5
-            periodSeconds: 10
+            initialDelaySeconds: 1
+            periodSeconds: 2
       volumes:
+        # A ConfigMap mounted as a volume: each key becomes a file in mountPath.
+        # Key `traefik.yaml` -> file /etc/traefik/traefik.yaml.
         - name: config
           configMap:
             name: traefik-config

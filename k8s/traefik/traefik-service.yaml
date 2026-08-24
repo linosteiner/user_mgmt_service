@@ -1,12 +1,32 @@
+# Service: a stable network name and IP in front of a changing set of pods. The
+# `selector` picks the pods by label -- there is no direct link to the Deployment.
+#
+# type: LoadBalancer is the only one in this stack. It asks the cloud provider
+# (DigitalOcean) to create a real external load balancer with a public IP and point
+# it at this Service. That public IP is what the DNS A-record for the site targets.
+# The other Services are ClusterIP -- reachable only from inside the cluster.
+#
+# Note that ports 80/443 are forwarded but 8080 (dashboard) deliberately is not.
 apiVersion: v1
 kind: Service
 metadata:
   name: traefik
+  annotations:
+    # DigitalOcean-specific tuning, and a subtle one worth keeping.
+    # The default health check (5 checks x 3s = 15s) takes longer than Traefik's first
+    # ACME attempt after a pod start (~9s). With `strategy: Recreate`, every restart
+    # loses that race: Let's Encrypt calls back on port 80, the load balancer does not
+    # yet consider the new pod healthy, the challenge 404s -- and Traefik does not
+    # automatically retry a failed ACME request (traefik#9405).
+    # 2 checks x 3s = 6s wins the race reliably.
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-healthy-threshold: "2"
 spec:
   type: LoadBalancer
   selector:
     app: traefik
   ports:
+    # port = the port on the Service/load balancer.
+    # targetPort = the port on the pod. Identical here, but they need not be.
     - name: web
       port: 80
       targetPort: 80

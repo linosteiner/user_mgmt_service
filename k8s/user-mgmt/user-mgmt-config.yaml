@@ -1,13 +1,28 @@
+# Configuration for the Spring Boot backend.
+#
+# Every key here is an environment variable name. Spring Boot's "relaxed binding"
+# maps SCREAMING_SNAKE_CASE env vars onto dotted properties automatically:
+# JWT_EXPIRATION_MILLIS -> jwt.expirationMillis, SERVER_SERVLET_CONTEXT_PATH ->
+# server.servlet.context-path. That is why some of these do not appear in
+# src/main/resources/application.properties at all yet still take effect.
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: user-mgmt-config
 data:
+  # -> jwt.issuer, bound onto JwtProperties (@ConfigurationProperties("jwt")).
   JWT_ISSUER: user-mgmt-service
+  # -> jwt.expirationMillis on the same class. 3600000 ms = 1 hour token lifetime.
+  # Not listed in application.properties -- @ConfigurationProperties binds it straight
+  # from the environment.
   JWT_EXPIRATION_MILLIS: "3600000"
+  # Hibernate schema handling. `update` alters the schema to match the entities and
+  # keeps the data. (docker-compose uses `create-drop`, which wipes it on every
+  # restart -- fine for local dev, not for a cluster with a PVC.)
   SPRING_JPA_HIBERNATE_DDL_AUTO: update
-  # Backend serviert selbst unter /api, damit der Ingress ohne stripPrefix
-  # auskommt (das waere in k8s eine Traefik-Middleware-CRD).
+  # -> server.servlet.context-path. The app serves itself under /api, which is why the
+  # Ingress needs no stripPrefix (that would require a Traefik Middleware CRD in k8s).
   SERVER_SERVLET_CONTEXT_PATH: /api
-  # Heap am Container-Limit ausrichten statt am Host-RAM (Node hat nur 2Gi).
+  # Size the JVM heap against the container memory limit (700Mi) rather than the host's
+  # total RAM. Without this the JVM sees the whole node and reserves far too much.
   JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=60"

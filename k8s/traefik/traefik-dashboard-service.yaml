@@ -1,6 +1,16 @@
-# Bewusst ClusterIP und nicht Teil des LoadBalancers: das Dashboard laeuft mit
-# api.insecure=true (ohne Auth) und darf daher nicht oeffentlich erreichbar sein.
-# Zugriff nur ueber: kubectl port-forward svc/traefik-dashboard 8080:8080
+# A second Service selecting the *same* Traefik pods, existing only to expose the
+# dashboard on port 8080. Nothing stops one Service from listing all three ports --
+# it is split out precisely so the dashboard is NOT part of the LoadBalancer.
+#
+# ClusterIP on purpose: the dashboard runs with `api.insecure: true` (no auth at all,
+# see traefik-config.yaml), so it must never be publicly reachable.
+# Access it locally instead:
+#
+#   kubectl port-forward svc/traefik-dashboard 8080:8080
+#   -> http://localhost:8080/dashboard/
+#
+# The dashboard is the fastest way to see which routers and services Traefik actually
+# built from the Ingress -- useful when routing does not behave as expected.
 apiVersion: v1
 kind: Service
 metadata:

@@ -1,3 +1,18 @@
+# RBAC (Role-Based Access Control) for Traefik.
+#
+# Traefik is not just a proxy here -- it *watches the Kubernetes API* for Ingress
+# objects and reconfigures itself when they change. To do that it needs an identity
+# and permissions. That takes three objects, which is why this file has three
+# documents separated by `---`:
+#
+#   1. ServiceAccount    -- the identity. The Traefik pod runs as this account
+#                           (`serviceAccountName: traefik` in the Deployment).
+#   2. ClusterRole       -- a set of permissions. Says nothing about *who* has them.
+#   3. ClusterRoleBinding -- glues 1 and 2 together: "this account gets these rights".
+#
+# "Cluster" role rather than a plain Role because Traefik must see Ingresses in every
+# namespace, and IngressClass is a cluster-scoped object with no namespace at all.
+
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -8,15 +23,26 @@ kind: ClusterRole
 metadata:
   name: traefik
 rules:
+  # services + endpointslices: to discover the pod IPs behind a Service, so Traefik
+  # can load-balance straight to pods.
+  # secrets: to read TLS certificates referenced by `spec.tls.secretName` in an
+  # Ingress. We do not use that (Traefik manages its own cert via ACME), but the
+  # provider requests the permission regardless.
+  # nodes: not actually needed by the kubernetesIngress provider in this setup.
+  # Left in place because removing it produces confusing, hard-to-diagnose failures
+  # if some code path does turn out to want it.
   - apiGroups: [""]
     resources: ["services", "secrets", "nodes"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["discovery.k8s.io"]
     resources: ["endpointslices"]
     verbs: ["get", "list", "watch"]
+  # The actual routing rules Traefik turns into routers.
   - apiGroups: ["networking.k8s.io"]
     resources: ["ingresses", "ingressclasses"]
     verbs: ["get", "list", "watch"]
+  # Write access, so Traefik can report the LoadBalancer IP back onto the Ingress.
+  # That is what makes `kubectl get ingress` show an ADDRESS.
   - apiGroups: ["networking.k8s.io"]
     resources: ["ingresses/status"]
     verbs: ["update"]
@@ -32,4 +58,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: traefik
+    # A ServiceAccount always lives in a namespace, so the binding has to name it.
+    # This is the one hardcoded namespace in the whole k8s/ tree -- if you ever move
+    # this stack out of `default`, this line must change with it.
     namespace: default

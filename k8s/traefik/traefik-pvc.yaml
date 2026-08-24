@@ -1,3 +1,13 @@
+# PersistentVolumeClaim: a request for disk that outlives the pod. Traefik writes the
+# Let's Encrypt certificate and account key to /letsencrypt/acme.json; without this
+# volume every pod restart would throw the certificate away and request a new one,
+# which quickly hits Let's Encrypt's rate limit (5 duplicate certs per week).
+#
+# ReadWriteOnce = mountable by pods on one node at a time. That is also why the
+# Deployment uses `strategy: Recreate` -- a rolling update would need two pods holding
+# the same RWO volume at once, and the new pod would hang in Pending.
+#
+# 1Gi is far more than acme.json needs, but DigitalOcean bills a 1Gi minimum anyway.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

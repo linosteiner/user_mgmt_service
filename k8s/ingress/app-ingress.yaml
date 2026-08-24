@@ -1,23 +1,50 @@
+# Ingress: the HTTP routing table. It maps hostnames and URL paths onto Services.
+#
+# An Ingress on its own does nothing -- it is only data. An ingress controller
+# (Traefik here) watches these objects and turns them into real proxy configuration.
+# That watch is what traefik-rbac.yaml grants permission for.
+#
+# Apply this LAST: it references the Services by name, and Traefik logs errors until
+# they exist.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: app-ingress
   annotations:
+    # Annotations prefixed traefik.ingress.kubernetes.io are Traefik-specific
+    # extensions -- the Ingress spec itself has no field for them. Swapping to a
+    # different ingress controller would mean rewriting these.
+    #
+    # Serve this Ingress on the :443 entrypoint only. Plain HTTP is handled by the
+    # global redirect configured in traefik-config.yaml.
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # Redundant with the `tls:` block below, which already implies TLS. Kept because
+    # it works and Traefik's precedence rules here are subtle -- not worth the risk
+    # of an ambiguous change.
     traefik.ingress.kubernetes.io/router.tls: "true"
+    # Fetch the certificate with the `letsencrypt` resolver defined in traefik-config.yaml.
     traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
 spec:
+  # Which controller should serve this -- matches the IngressClass object named
+  # `traefik` in k8s/traefik/traefik-ingressclass.yaml.
   ingressClassName: traefik
   tls:
+    # Note there is no `secretName`. Normally that would point at a Secret holding the
+    # certificate; instead Traefik obtains and stores the cert itself in acme.json on
+    # its PVC. So the certificate is NOT a Kubernetes object -- `kubectl get secret`
+    # will not show it, and deleting traefik-acme-pvc means re-issuing it.
     - hosts:
-        - vcs.linosteiner.ch
+        - vcs.lennardbernet.ch
   rules:
-    - host: vcs.linosteiner.ch
+    - host: vcs.lennardbernet.ch
       http:
         paths:
-          # Laengster Prefix gewinnt: /api landet beim Backend, alles andere
-          # beim Frontend. Kein stripPrefix noetig - das Backend serviert
-          # selbst unter /api (SERVER_SERVLET_CONTEXT_PATH).
+          # Longest matching prefix wins, so /api reaches the backend and everything
+          # else falls through to the frontend. Order in this list does not matter.
+          #
+          # No stripPrefix: the backend serves itself under /api already
+          # (SERVER_SERVLET_CONTEXT_PATH in user-mgmt-config.yaml), so it receives the
+          # path unchanged. Stripping it in k8s would require a Traefik Middleware CRD.
           - path: /api
             pathType: Prefix
             backend:

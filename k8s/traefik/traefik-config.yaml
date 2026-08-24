@@ -1,13 +1,28 @@
+# ConfigMap: non-secret configuration, injected into a pod as env vars or (as here)
+# as a file. This one holds Traefik's *static* configuration -- the settings Traefik
+# reads once at startup and cannot change at runtime.
+#
+# Note the nesting: `traefik.yaml: |` makes the whole indented block one long string
+# value. Kubernetes does not parse it; it just writes it to /etc/traefik/traefik.yaml
+# in the container (see the volumeMount in traefik-deployment.yaml), and Traefik parses
+# it via `--configFile=/etc/traefik/traefik.yaml`.
+#
+# Changing this file does NOT restart Traefik. Run `kubectl rollout restart deployment/traefik`
+# after `kubectl apply` to pick up changes.
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: traefik-config
 data:
   traefik.yaml: |
+    # Entrypoints are the ports Traefik listens on. Routers (created from our Ingress)
+    # attach to an entrypoint.
     entryPoints:
       web:
         address: ":80"
         http:
+          # Everything arriving on plain HTTP is 308-redirected to HTTPS. The ACME
+          # HTTP-01 challenge below is exempt -- Traefik answers it before the redirect.
           redirections:
             entryPoint:
               to: websecure
@@ -19,20 +34,30 @@ data:
 
     api:
       dashboard: true
+      # insecure = the dashboard is served on the `traefik` entrypoint (:8080) with no
+      # authentication whatsoever. Safe ONLY because port 8080 is never exposed publicly:
+      # the LoadBalancer Service forwards 80 and 443 only, and the dashboard has a
+      # separate ClusterIP Service reachable via `kubectl port-forward`.
       insecure: true
 
     providers:
+      # The provider is where Traefik gets its routes from. `kubernetesIngress` means
+      # "watch Ingress objects via the Kubernetes API" -- which is what the RBAC in
+      # traefik-rbac.yaml grants. Empty `{}` = use all defaults (all namespaces).
       kubernetesIngress: {}
 
     certificatesResolvers:
+      # Automatic TLS certificates from Let's Encrypt. Referenced by name from the
+      # Ingress annotation `traefik.ingress.kubernetes.io/router.tls.certresolver`.
       letsencrypt:
         acme:
-          email: "test@test.ch"
+          # Let's Encrypt sends expiry warnings here.
+          email: "bernet.lennard.privat@gmail.com"
+          # Stored on the traefik-acme-pvc volume so certs survive pod restarts.
           storage: "/letsencrypt/acme.json"
-          # Staging-CA fuer den ersten Durchlauf: Let's Encrypt limitiert auf
-          # 5 Fehlversuche/Stunde/Hostname. Erst wenn hier ein Zertifikat
-          # ausgestellt wird, diese Zeile entfernen und den Pod neu starten,
-          # um ein echtes (browser-vertrauenswuerdiges) Zertifikat zu holen.
-          caServer: https://acme-staging-v02.api.letsencrypt.org/directory
+          # HTTP-01 challenge: Let's Encrypt calls back to
+          # http://<host>/.well-known/acme-challenge/<token> to prove we control the
+          # domain. This requires port 80 to be publicly reachable AND DNS for the
+          # host to point at this cluster -- see README, "DNS and the AAAA trap".
           httpChallenge:
             entryPoint: web

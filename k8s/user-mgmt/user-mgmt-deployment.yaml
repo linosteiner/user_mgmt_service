@@ -1,3 +1,6 @@
+# The Spring Boot backend. Serves the REST API under /api (see
+# SERVER_SERVLET_CONTEXT_PATH) and talks to Postgres over the cluster-internal
+# `postgres` Service name.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,8 +9,9 @@ metadata:
     app: user-mgmt-service
 spec:
   replicas: 1
-  # Recreate statt RollingUpdate: der Node ist zu klein, um waehrend eines
-  # Rollouts kurzzeitig zwei Pods gleichzeitig zu tragen.
+  # Recreate instead of RollingUpdate: the node is too small to carry two of these
+  # pods at once during a rollout. The cost is a short outage on every deploy --
+  # acceptable here, and the reason the readinessProbe below matters so much.
   strategy:
     type: Recreate
   selector:
@@ -21,14 +25,27 @@ spec:
       containers:
         - name: user-mgmt-service
           image: xxpirl2knc5/user_mgmt_service:latest
+          # Required with a mutable `:latest` tag. Kubernetes' default policy for a
+          # named tag is IfNotPresent, meaning a node that already has *an* image
+          # called :latest will happily reuse the stale one and your deploy silently
+          # does nothing.
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
+          # Each variable is wired individually rather than with envFrom, because the
+          # names have to change on the way in: the database credentials live under
+          # POSTGRES_* (shared with the Postgres pod) but Spring wants them as
+          # SPRING_DATASOURCE_*. envFrom cannot rename keys.
           env:
             - name: POSTGRES_DB
               valueFrom:
                 configMapKeyRef:
                   name: postgres-config
                   key: POSTGRES_DB
+            # $(POSTGRES_DB) works here -- unlike in a probe -- because Kubernetes
+            # expands $(VAR) against variables declared EARLIER in this same env list,
+            # and POSTGRES_DB is declared directly above.
+            # `postgres` is the Service name, resolved by cluster DNS.
             - name: SPRING_DATASOURCE_URL
               value: jdbc:postgresql://postgres:5432/$(POSTGRES_DB)
             - name: SPRING_DATASOURCE_USERNAME
@@ -76,4 +93,35 @@ spec:
               cpu: 100m
               memory: 384Mi
             limits:
+              # Kept in step with JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=60 in the
+              # ConfigMap: heap tops out around 420Mi, leaving room for the JVM's
+              # non-heap memory before the container is OOM-killed.
               memory: 700Mi
+          # tcpSocket rather than httpGet, for two reasons:
+          #   1. There is no spring-boot-starter-actuator dependency, so there is no
+          #      /actuator/health endpoint.
+          #   2. WebSecurityConfig requires authentication on every path except
+          #      POST /users/login and /users/register, so any GET would answer 401/403
+          #      -- which Kubernetes counts as a failed probe.
+          # Adding the actuator dependency later would let this become a real health
+          # check that also verifies the database connection.
+          #
+          # readinessProbe = gate on traffic. Until it passes, this pod is not an
+          # endpoint of user-mgmt-service and Traefik will not route to it. Without
+          # this, a Recreate rollout sends live requests to a JVM that is still booting
+          # and the site returns 502 for ~30 seconds.
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            failureThreshold: 6
+          # livenessProbe = restart if it stops responding. The long initial delay is
+          # deliberate: if liveness fired during a slow JVM start it would kill the
+          # container and produce an endless CrashLoopBackOff.
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            failureThreshold: 3

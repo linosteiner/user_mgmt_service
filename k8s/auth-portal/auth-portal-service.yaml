@@ -1,3 +1,5 @@
+# Internal address of the frontend: `auth-portal:3000`. The Ingress sends everything
+# that is not /api here.
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,5 +9,6 @@ spec:
   selector:
     app: auth-portal
   ports:
-    - port: 3000
+    - name: http
+      port: 3000
       targetPort: 3000

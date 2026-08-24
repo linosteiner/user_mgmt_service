@@ -1,3 +1,4 @@
+# The Next.js frontend. Serves everything that is not /api.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,8 +7,8 @@ metadata:
     app: auth-portal
 spec:
   replicas: 1
-  # Recreate statt RollingUpdate: der Node ist zu klein, um waehrend eines
-  # Rollouts kurzzeitig zwei Pods gleichzeitig zu tragen.
+  # Recreate instead of RollingUpdate: the node is too small to carry two of these
+  # pods at once during a rollout.
   strategy:
     type: Recreate
   selector:
@@ -20,10 +21,14 @@ spec:
     spec:
       containers:
         - name: auth-portal
-          image: xxpirl2knc5/auth_portal:latest
+          image: bernetlennard/auth_portal:latest
+          # Required with a mutable `:latest` tag -- otherwise a node that already
+          # cached an image called :latest reuses the stale one.
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
+          # No renaming needed here, so envFrom pulls in every key of the ConfigMap
+          # at once. Compare user-mgmt-deployment.yaml, which cannot use this.
           envFrom:
             - configMapRef:
                 name: auth-portal-config
@@ -33,3 +38,20 @@ spec:
               memory: 128Mi
             limits:
               memory: 256Mi
+          # httpGet is possible here (unlike for the backend) because the frontend
+          # serves / without authentication. Kubernetes counts any 2xx or 3xx as a
+          # pass, so a redirect to /dashboard is still "ready".
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3

@@ -1,11 +1,16 @@
-# NEXT_PUBLIC_API_URL steht hier bewusst NICHT drin: Next.js kompiliert
-# NEXT_PUBLIC_*-Variablen zur Build-Zeit ins Client-Bundle ein. Im Image
-# xxpirl2knc5/auth_portal:latest ist fest https://vcs.linosteiner.ch/api
-# eingebacken - eine env-Variable zur Laufzeit haette keinerlei Wirkung.
+# Runtime configuration for the Next.js frontend.
+#
+# NEXT_PUBLIC_API_URL is deliberately NOT here. Next.js inlines NEXT_PUBLIC_* variables
+# into the client bundle at BUILD time, so setting one at runtime has no effect at all.
+# The image bernetlennard/auth_portal:latest has https://vcs.lennardbernet.ch/api baked
+# in -- meaning the hostname is coupled to the image and changing the domain requires
+# rebuilding the frontend, not just editing this file.
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: auth-portal-config
 data:
   PORT: "3000"
-  NODE_ENV: production
+  # Quoted because YAML would otherwise be free to interpret bare values; keeping every
+  # value a quoted string avoids surprises (the classic one being `NO` parsing as false).
+  NODE_ENV: "production"

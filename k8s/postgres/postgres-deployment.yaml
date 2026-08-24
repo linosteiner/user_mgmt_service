@@ -1,3 +1,8 @@
+# The database pod.
+#
+# Note: a stateful database in a Deployment is a simplification. The "correct" object
+# is a StatefulSet, which gives stable pod names and a volume per replica. With
+# replicas: 1 a Deployment behaves the same, and it is one less concept while learning.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,6 +11,9 @@ metadata:
     app: postgres
 spec:
   replicas: 1
+  # Recreate, not RollingUpdate: the PVC is ReadWriteOnce, so two Postgres pods can
+  # never hold the data volume simultaneously. (Two Postgres processes on one data
+  # directory would corrupt it anyway.)
   strategy:
     type: Recreate
   selector:
@@ -22,8 +30,14 @@ spec:
           ports:
             - containerPort: 5432
           env:
+            # The volume is mounted at /var/lib/postgresql/data, and on DigitalOcean a
+            # freshly attached volume contains a lost+found directory. Postgres refuses
+            # to initialise into a non-empty directory, so point PGDATA at a subdirectory.
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
+          # envFrom pulls in EVERY key of a ConfigMap/Secret as an env var, using the
+          # key name as the variable name. Compare user-mgmt-deployment.yaml, which
+          # uses explicit per-key references because it has to rename them.
           envFrom:
             - secretRef:
                 name: postgres-secret
@@ -38,14 +52,23 @@ spec:
               memory: 128Mi
             limits:
               memory: 256Mi
+          # Probes: readiness controls traffic, liveness controls restarts.
+          #
+          # Careful with the shell here. Kubernetes expands `$(VAR)` in probe args only
+          # against variables declared earlier in this container's own `env:` list --
+          # NOT against anything coming from `envFrom`. Writing
+          #   command: ["pg_isready", "-U", "$(POSTGRES_USER)"]
+          # passes the literal string "$(POSTGRES_USER)" to pg_isready.
+          # Running it through `sh -c` instead lets the *container's* shell expand
+          # $POSTGRES_USER from the real environment, where envFrom did put it.
           readinessProbe:
             exec:
-              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+              command: ["sh", "-c", 'exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"']
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             exec:
-              command: ["pg_isready", "-U", "$(POSTGRES_USER)", "-d", "$(POSTGRES_DB)"]
+              command: ["sh", "-c", 'exec pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"']
             initialDelaySeconds: 15
             periodSeconds: 20
       volumes:
