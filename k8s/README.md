@@ -1,7 +1,9 @@
 # Kubernetes setup
 
 This directory deploys the whole application to a DigitalOcean Kubernetes cluster,
-reachable at **https://vcs.lennardbernet.ch**.
+reachable at **https://vcs.lennardbernet.ch** and **https://vcs.linosteiner.ch** (both
+DNS names point at the same LoadBalancer IP and are routed in
+`k8s/ingress/app-ingress.yaml`).
 
 Everything is plain YAML applied with `kubectl apply -f`. No Helm, no Kustomize, no
 namespace other than `default` — on purpose, so there is nothing between you and the

@@ -33,8 +33,13 @@ spec:
     # certificate; instead Traefik obtains and stores the cert itself in acme.json on
     # its PVC. So the certificate is NOT a Kubernetes object -- `kubectl get secret`
     # will not show it, and deleting traefik-acme-pvc means re-issuing it.
+    #
+    # Each host gets its own cert from the `letsencrypt` resolver (SNI-based, not one
+    # shared multi-domain cert) -- listing both here is what makes Traefik request the
+    # second one instead of only ever fetching vcs.lennardbernet.ch's.
     - hosts:
         - vcs.lennardbernet.ch
+        - vcs.linosteiner.ch
   rules:
     - host: vcs.lennardbernet.ch
       http:
@@ -45,6 +50,25 @@ spec:
           # No stripPrefix: the backend serves itself under /api already
           # (SERVER_SERVLET_CONTEXT_PATH in user-mgmt-config.yaml), so it receives the
           # path unchanged. Stripping it in k8s would require a Traefik Middleware CRD.
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: user-mgmt-service
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-portal
+                port:
+                  number: 3000
+    # Same backend Services as above -- both hostnames are just two doors into the same
+    # cluster. A host block cannot reuse another host's paths, so this repeats them.
+    - host: vcs.linosteiner.ch
+      http:
+        paths:
           - path: /api
             pathType: Prefix
             backend:
