@@ -1,0 +1,23 @@
+# ArgoCD itself is installed from the upstream manifest (kubectl apply -f
+# https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml),
+# not tracked in git. This file only overrides argocd-cmd-params-cm, the ConfigMap
+# ArgoCD reads its server flags from, so the override survives being re-applied here
+# alongside the rest of the cluster's tracked infra.
+#
+# server.insecure = argocd-server stops terminating its own TLS and serves plain HTTP
+# on :8080. Required because Traefik (see ../traefik/) terminates TLS itself via
+# Let's Encrypt -- without this, Traefik's plain-HTTP proxy to argocd-server would hit
+# argocd-server's TLS listener and fail the handshake.
+#
+# Apply, then `kubectl rollout restart deployment/argocd-server -n argocd` --
+# argocd-server does not watch this ConfigMap at runtime.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cmd-params-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cmd-params-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  server.insecure: "true"

@@ -1,0 +1,32 @@
+# Exposes the ArgoCD dashboard/API at https://argo.linosteiner.ch through the same
+# Traefik ingress controller and Let's Encrypt resolver as the application (see
+# ../traefik/traefik-config.yaml). Requires:
+#   - DNS: argo.linosteiner.ch A record -> the Traefik LoadBalancer IP
+#     (same IP vcs.linosteiner.ch / vcs.lennardbernet.ch already point to)
+#   - argocd-cmd-params-cm.yaml applied first (server.insecure: "true"), otherwise
+#     Traefik's plain-HTTP proxy hits argocd-server's TLS listener and fails
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server
+  namespace: argocd
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.tls.certresolver: letsencrypt
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - argo.linosteiner.ch
+  rules:
+    - host: argo.linosteiner.ch
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  name: http
