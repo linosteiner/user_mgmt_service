@@ -1,5 +1,16 @@
 # Kubernetes setup
 
+> **Superseded (Aufgabe 2).** The application is no longer deployed from this directory.
+> `postgres/`, `user-mgmt/`, `auth-portal/` and `ingress/` have been replaced by the Helm
+> chart in the Ops repository [`bernetlennard/user_mgmt_ops`](https://github.com/bernetlennard/user_mgmt_ops)
+> (`charts/user-mgmt`), installed into the `prod` and `staging` namespaces. Only
+> `traefik/` is still applied from here — moving the ingress controller into a separate
+> `charts/platform` is the last migration step, because it is the one that can cost the
+> public IP and the TLS certificate.
+>
+> This README is kept as documentation of Aufgabe 1: it is still the clearest explanation
+> of *what the objects are*, which the chart only changes the packaging of.
+
 This directory deploys the whole application to a DigitalOcean Kubernetes cluster,
 reachable at **https://vcs.lennardbernet.ch** and **https://vcs.linosteiner.ch** (both
 DNS names point at the same LoadBalancer IP and are routed in
