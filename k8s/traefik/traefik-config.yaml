@@ -43,8 +43,13 @@ data:
     providers:
       # The provider is where Traefik gets its routes from. `kubernetesIngress` means
       # "watch Ingress objects via the Kubernetes API" -- which is what the RBAC in
-      # traefik-rbac.yaml grants. Empty `{}` = use all defaults (all namespaces).
-      kubernetesIngress: {}
+      # traefik-rbac.yaml grants.
+      kubernetesIngress:
+        # Without this, Traefik never writes an address into Ingress.status.loadBalancer,
+        # so anything that waits on that status (e.g. ArgoCD's Ingress health check)
+        # stays stuck on "Progressing" forever even though routing works fine.
+        ingressEndpoint:
+          publishedService: "default/traefik"
 
     certificatesResolvers:
       # Automatic TLS certificates from Let's Encrypt. Referenced by name from the
