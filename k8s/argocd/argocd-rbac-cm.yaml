@@ -1,0 +1,17 @@
+# Grants RBAC roles to local accounts declared in argocd-cm.yaml. A declared account
+# with no entry here falls back to `policy.default` (unset = no access), so every
+# local account needs a `g,` line.
+#
+# `role:admin` is a built-in ArgoCD role (unrestricted access to all resources) --
+# no `p,` policy lines needed to define it, just bind an account to it.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-rbac-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  policy.csv: |
+    g, lennard, role:admin

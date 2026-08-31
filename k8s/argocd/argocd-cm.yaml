@@ -1,0 +1,19 @@
+# Declares local ArgoCD accounts (in addition to the built-in `admin` superuser).
+# `apiKey` lets the account generate auth tokens, `login` lets it sign in via UI/CLI.
+# A declared account still has zero permissions until granted a role in
+# argocd-rbac-cm.yaml -- see accounts.lennard there.
+#
+# Merges into the existing argocd-cm (installed from the upstream ArgoCD manifest, not
+# tracked in git) via `kubectl apply`; does not require an argocd-server restart, it is
+# watched at runtime.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  accounts.lennard: "login"
+  accounts.lennard.enabled: "true"
