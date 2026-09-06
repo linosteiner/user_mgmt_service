@@ -1,9 +1,7 @@
-# IngressClass: the name an Ingress uses to pick *which* ingress controller should
-# serve it. Our Ingress says `ingressClassName: traefik`, which points here, and
-# `controller:` tells Kubernetes that Traefik is the implementation behind that name.
+# The name an Ingress uses to pick its controller: `ingressClassName: traefik` points
+# here, and `controller:` names Traefik as the implementation behind it.
 #
-# Not marked as the cluster default (annotation `ingressclass.kubernetes.io/is-default-class`),
-# which is fine because our Ingress names the class explicitly.
+# Not marked as the cluster default -- every Ingress here names the class explicitly.
 apiVersion: networking.k8s.io/v1
 kind: IngressClass
 metadata:

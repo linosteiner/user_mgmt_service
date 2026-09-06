@@ -10,8 +10,7 @@ metadata:
 spec:
   replicas: 1
   # Recreate instead of RollingUpdate: the node is too small to carry two of these
-  # pods at once during a rollout. The cost is a short outage on every deploy --
-  # acceptable here, and the reason the readinessProbe below matters so much.
+  # pods at once. Costs a short outage on every deploy.
   strategy:
     type: Recreate
   selector:
@@ -25,26 +24,21 @@ spec:
       containers:
         - name: user-mgmt-service
           image: xxpirl2knc5/user_mgmt_service:latest
-          # Required with a mutable `:latest` tag. Kubernetes' default policy for a
-          # named tag is IfNotPresent, meaning a node that already has *an* image
-          # called :latest will happily reuse the stale one and your deploy silently
-          # does nothing.
+          # Required with a mutable `:latest` tag -- the default IfNotPresent would
+          # reuse a stale cached image and the deploy would silently do nothing.
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
-          # Each variable is wired individually rather than with envFrom, because the
-          # names have to change on the way in: the database credentials live under
-          # POSTGRES_* (shared with the Postgres pod) but Spring wants them as
-          # SPRING_DATASOURCE_*. envFrom cannot rename keys.
+          # Wired per key rather than with envFrom, because the names change on the way
+          # in: the credentials are stored as POSTGRES_* but Spring wants them as
+          # SPRING_DATASOURCE_*, and envFrom cannot rename keys.
           env:
             - name: POSTGRES_DB
               valueFrom:
                 configMapKeyRef:
                   name: postgres-config
                   key: POSTGRES_DB
-            # $(POSTGRES_DB) works here -- unlike in a probe -- because Kubernetes
-            # expands $(VAR) against variables declared EARLIER in this same env list,
-            # and POSTGRES_DB is declared directly above.
+            # $(POSTGRES_DB) resolves against the entry declared directly above;
             # `postgres` is the Service name, resolved by cluster DNS.
             - name: SPRING_DATASOURCE_URL
               value: jdbc:postgresql://postgres:5432/$(POSTGRES_DB)
@@ -97,28 +91,17 @@ spec:
               # ConfigMap: heap tops out around 420Mi, leaving room for the JVM's
               # non-heap memory before the container is OOM-killed.
               memory: 700Mi
-          # tcpSocket rather than httpGet, for two reasons:
-          #   1. There is no spring-boot-starter-actuator dependency, so there is no
-          #      /actuator/health endpoint.
-          #   2. WebSecurityConfig requires authentication on every path except
-          #      POST /users/login and /users/register, so any GET would answer 401/403
-          #      -- which Kubernetes counts as a failed probe.
-          # Adding the actuator dependency later would let this become a real health
-          # check that also verifies the database connection.
-          #
-          # readinessProbe = gate on traffic. Until it passes, this pod is not an
-          # endpoint of user-mgmt-service and Traefik will not route to it. Without
-          # this, a Recreate rollout sends live requests to a JVM that is still booting
-          # and the site returns 502 for ~30 seconds.
+          # tcpSocket, so the probes only check that Tomcat has bound its port. The app
+          # meanwhile exposes real Actuator probes on :8081 (see application.properties);
+          # the Helm chart in the Ops repo uses those, this superseded manifest does not.
           readinessProbe:
             tcpSocket:
               port: 8080
             initialDelaySeconds: 20
             periodSeconds: 5
             failureThreshold: 6
-          # livenessProbe = restart if it stops responding. The long initial delay is
-          # deliberate: if liveness fired during a slow JVM start it would kill the
-          # container and produce an endless CrashLoopBackOff.
+          # The long initial delay keeps liveness from killing a slow JVM start and
+          # producing an endless CrashLoopBackOff.
           livenessProbe:
             tcpSocket:
               port: 8080

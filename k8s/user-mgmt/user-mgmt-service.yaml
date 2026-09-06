@@ -1,9 +1,6 @@
 # Internal address of the backend: `user-mgmt-service:8080`. The Ingress routes /api
-# here by naming this Service.
-#
-# The Service and the Deployment share a name, which is legal -- they are different
-# kinds of object. What actually links this Service to those pods is the `selector`
-# below matching the pods' labels, nothing else.
+# here by naming this Service. Sharing a name with the Deployment is legal and
+# irrelevant -- only the selector below links this Service to the pods.
 apiVersion: v1
 kind: Service
 metadata:

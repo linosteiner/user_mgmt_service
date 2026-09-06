@@ -1,10 +1,6 @@
-# Gives the database a stable DNS name inside the cluster: `postgres`, or in full
-# `postgres.default.svc.cluster.local`. That short name is what the backend's JDBC
-# URL uses (jdbc:postgresql://postgres:5432/...) -- pod IPs change on every restart,
-# the Service name does not.
-#
-# ClusterIP = internal only. There is deliberately no route from the internet to the
-# database; the only way in from outside is `kubectl port-forward svc/postgres 5432:5432`.
+# Stable in-cluster DNS name for the database: `postgres`, which is what the backend's
+# JDBC URL uses. ClusterIP, so there is no route from the internet -- reach it locally
+# with `kubectl port-forward svc/postgres 5432:5432`.
 apiVersion: v1
 kind: Service
 metadata:

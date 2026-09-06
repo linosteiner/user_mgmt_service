@@ -1,8 +1,7 @@
 name: Build and Promote
 
-# This pipeline does not deploy. It builds an image, publishes it, and writes the new
-# tag into the Ops repository -- ArgoCD is what moves the cluster, by reconciling against
-# that commit. Nothing here ever talks to the cluster.
+# Builds and publishes the image, then writes the new tag into the Ops repository.
+# Nothing here talks to the cluster -- ArgoCD moves it by reconciling against that commit.
 
 on:
   push:
@@ -11,8 +10,8 @@ on:
 permissions:
   contents: read
 
-# Promotion is a read-modify-write of a single line in a shared repo. Serialise the runs
-# so two builds cannot race each other into a push conflict.
+# Promotion is a read-modify-write of one line in a shared repo, so runs are serialised
+# to keep two builds from racing into a push conflict.
 concurrency:
   group: promote-ops
   cancel-in-progress: false
@@ -43,8 +42,8 @@ jobs:
         with:
           context: .
           push: true
-          # :latest is for docker-compose.yaml, which is still the local dev path.
-          # The cluster only ever references the immutable SHA tag.
+          # :latest serves docker-compose.yaml, the local dev path. The cluster only
+          # ever references the immutable SHA tag.
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -57,9 +56,8 @@ jobs:
     permissions:
       contents: read  # the Ops repo is written with OPS_REPO_TOKEN, not GITHUB_TOKEN
     steps:
-      # The Ops repo lives under a different owner, so the built-in GITHUB_TOKEN cannot
-      # write to it. OPS_REPO_TOKEN is a fine-grained PAT scoped to that one repo,
-      # Contents: read and write.
+      # The Ops repo has a different owner, so GITHUB_TOKEN cannot write to it.
+      # OPS_REPO_TOKEN is a fine-grained PAT scoped to that repo, Contents: read/write.
       - name: Checkout Ops repository
         uses: actions/checkout@v7
         with:
@@ -68,11 +66,9 @@ jobs:
           token: ${{ secrets.OPS_REPO_TOKEN }}
           path: ops
 
-      # Deliberately sed and not yq. values.yaml carries the comments that explain the
-      # chart, and yq rewrites the whole document: it injects a blank line into every
-      # multi-line comment block and reflows flow-style collections
-      # ({ port: 8080 } -> {port: 8080}). This substitution is anchored to the backend
-      # block, where `    tag: ` at four spaces is unique to backend.image.tag.
+      # sed and not yq: yq rewrites the whole document, injecting blank lines into the
+      # chart's comment blocks and reflowing flow-style collections. The substitution is
+      # anchored to the backend block, where `    tag: ` is unique to backend.image.tag.
       - name: Rewrite backend image tag
         id: rewrite
         working-directory: ops
@@ -87,8 +83,8 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # If the substitution ever stops matching, or starts matching too much, that must
-      # be a red build and not a silently mangled chart.
+      # A substitution that stops matching, or matches too much, must fail the build
+      # rather than silently mangle the chart.
       - name: Verify exactly one line changed
         if: steps.rewrite.outputs.changed == 'true'
         working-directory: ops
@@ -116,7 +112,7 @@ jobs:
           $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
           EOF
 
-          # A human commit landing between our checkout and our push must not fail the
+          # A commit landing between our checkout and our push must not fail the
           # promotion -- rebase onto it and try again.
           for attempt in 1 2 3; do
             if git push origin main; then

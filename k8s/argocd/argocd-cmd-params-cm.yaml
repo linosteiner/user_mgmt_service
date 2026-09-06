@@ -1,13 +1,9 @@
-# ArgoCD itself is installed from the upstream manifest (kubectl apply -f
-# https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml),
-# not tracked in git. This file only overrides argocd-cmd-params-cm, the ConfigMap
-# ArgoCD reads its server flags from, so the override survives being re-applied here
-# alongside the rest of the cluster's tracked infra.
+# Server flags for the ArgoCD install, which itself comes from the upstream manifest
+# (argo-cd/stable/manifests/install.yaml) and is not tracked in git.
 #
-# server.insecure = argocd-server stops terminating its own TLS and serves plain HTTP
-# on :8080. Required because Traefik (see ../traefik/) terminates TLS itself via
-# Let's Encrypt -- without this, Traefik's plain-HTTP proxy to argocd-server would hit
-# argocd-server's TLS listener and fail the handshake.
+# server.insecure makes argocd-server serve plain HTTP on :8080 instead of terminating
+# its own TLS. Required because Traefik terminates TLS -- otherwise its plain-HTTP
+# proxy hits argocd-server's TLS listener and the handshake fails.
 #
 # Apply, then `kubectl rollout restart deployment/argocd-server -n argocd` --
 # argocd-server does not watch this ConfigMap at runtime.

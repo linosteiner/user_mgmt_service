@@ -1,8 +1,5 @@
-# Non-secret Postgres settings. The postgres image reads POSTGRES_DB on first start
-# and creates that database.
-#
-# The user-mgmt-service Deployment also reads this key (via configMapKeyRef) to build
-# its JDBC URL, so the database name is defined in exactly one place.
+# The postgres image reads POSTGRES_DB on first start and creates that database. The
+# backend reads the same key to build its JDBC URL, so the name is defined once.
 apiVersion: v1
 kind: ConfigMap
 metadata:

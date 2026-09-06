@@ -8,7 +8,7 @@ metadata:
 spec:
   replicas: 1
   # Recreate instead of RollingUpdate: the node is too small to carry two of these
-  # pods at once during a rollout.
+  # pods at once.
   strategy:
     type: Recreate
   selector:
@@ -27,8 +27,6 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
-          # No renaming needed here, so envFrom pulls in every key of the ConfigMap
-          # at once. Compare user-mgmt-deployment.yaml, which cannot use this.
           envFrom:
             - configMapRef:
                 name: auth-portal-config
@@ -38,9 +36,8 @@ spec:
               memory: 128Mi
             limits:
               memory: 256Mi
-          # httpGet is possible here (unlike for the backend) because the frontend
-          # serves / without authentication. Kubernetes counts any 2xx or 3xx as a
-          # pass, so a redirect to /dashboard is still "ready".
+          # The frontend serves / without authentication, so an HTTP probe works.
+          # Any 2xx or 3xx counts as a pass, so the redirect to /dashboard is fine.
           readinessProbe:
             httpGet:
               path: /

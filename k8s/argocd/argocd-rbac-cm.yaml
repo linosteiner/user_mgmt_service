@@ -1,9 +1,8 @@
-# Grants RBAC roles to local accounts declared in argocd-cm.yaml. A declared account
-# with no entry here falls back to `policy.default` (unset = no access), so every
-# local account needs a `g,` line.
+# Roles for the local accounts declared in argocd-cm.yaml. Without a `g,` line an
+# account falls back to `policy.default`, which is unset and means no access.
 #
-# `role:admin` is a built-in ArgoCD role (unrestricted access to all resources) --
-# no `p,` policy lines needed to define it, just bind an account to it.
+# `role:admin` is built into ArgoCD (unrestricted), so binding to it is enough -- no
+# `p,` policy lines needed.
 apiVersion: v1
 kind: ConfigMap
 metadata:

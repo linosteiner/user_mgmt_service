@@ -1,28 +1,15 @@
 # Runtime configuration for the Next.js frontend.
 #
-# NEXT_PUBLIC_API_URL is deliberately NOT here. Next.js inlines NEXT_PUBLIC_* variables
-# at BUILD time (server-side route handlers included -- see app/auth/*/route.ts in the
-# auth_portal repo), so setting one at runtime has no effect at all. The image
-# bernetlennard/auth_portal:latest has https://vcs.lennardbernet.ch/api baked in --
-# meaning the backend hostname is coupled to the image and changing it requires
-# rebuilding the frontend, not just editing this file.
-#
-# vcs.linosteiner.ch is routed to this same Deployment as a mirror (see
-# k8s/ingress/app-ingress.yaml) purely at the Ingress/DNS level -- the pod itself is
-# unaware which hostname a request came in on, so its server-side calls still go to
-# https://vcs.lennardbernet.ch/api even when a visitor is on vcs.linosteiner.ch. That
-# is fine only because the two are today the same physical backend.
-#
-# Note: this image is unrelated to xxpirl2knc5/auth_portal, which is what auth_portal's
-# own .github/workflows/deploy.yml currently builds and pushes on every commit to main.
-# This Deployment does not track that pipeline -- redeploying here means someone pushed
-# a new tag to bernetlennard/auth_portal by hand.
+# NEXT_PUBLIC_API_URL is deliberately not here: Next.js inlines NEXT_PUBLIC_* at build
+# time, so setting it at runtime has no effect. bernetlennard/auth_portal:latest has
+# https://vcs.lennardbernet.ch/api baked in, which means the pod calls that host even
+# for visitors arriving on vcs.linosteiner.ch, and changing the backend hostname
+# requires rebuilding the image rather than editing this file.
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: auth-portal-config
 data:
+  # Quoted so YAML cannot reinterpret the values (the classic case being `NO` -> false).
   PORT: "3000"
-  # Quoted because YAML would otherwise be free to interpret bare values; keeping every
-  # value a quoted string avoids surprises (the classic one being `NO` parsing as false).
   NODE_ENV: "production"

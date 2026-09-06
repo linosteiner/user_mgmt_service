@@ -1,12 +1,7 @@
-# Disk for the database. Pods are disposable and their filesystem dies with them, so
-# any state that must survive a restart needs a PersistentVolumeClaim.
+# Disk for the database, provisioned as a DigitalOcean block-storage volume.
 #
-# A PVC is a *request*: Kubernetes finds or provisions a matching PersistentVolume
-# (on DigitalOcean, a block-storage volume) and binds it. `kubectl get pvc` shows
-# Bound when that has happened.
-#
-# Deleting this PVC deletes the database. `kubectl delete -f k8s/postgres/` does
-# exactly that -- see the teardown section in the README.
+# Deleting this PVC deletes the database -- `kubectl delete -f k8s/postgres/` does
+# exactly that.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
