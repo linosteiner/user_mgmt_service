@@ -46,6 +46,14 @@ public class WebSecurityConfig {
         .authorizeHttpRequests(requests -> requests
             .requestMatchers(HttpMethod.POST, "/users/login").permitAll()
             .requestMatchers(HttpMethod.POST, "/users/register").permitAll()
+            // The Kubernetes probes call these unauthenticated. Matched by path rather
+            // than by EndpointRequest so the rule holds either way: with
+            // management.server.port=8081 (the configured case) Actuator runs in its own
+            // context and this chain never sees those requests at all, and if the
+            // management port is ever merged back into 8080 the rule starts applying
+            // without further edits. Paths are matched relative to the servlet context,
+            // so this covers /api/actuator/** too.
+            .requestMatchers("/actuator/**").permitAll()
             .anyRequest().authenticated())
         .addFilterAfter(
             new CustomAuthenticationFilter(loginPostMatcher, authenticationManager(), jwtProperties),

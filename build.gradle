@@ -17,6 +17,11 @@ repositories {
 }
 
 dependencies {
+    // Deployment infrastructure rather than a feature: Actuator provides
+    // /actuator/health/readiness and /actuator/health/liveness, which are what the
+    // Kubernetes probes call. Without it a probe can only check that Tomcat has bound
+    // its port -- which says nothing about the datasource behind it.
+    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-actuator', version: '4.1.0-M3'
     implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa', version: '4.1.0-M3'
     implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security', version: '4.1.0-M3'
     implementation group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: '4.1.0-M3'
