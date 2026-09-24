@@ -23,6 +23,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.web.filter.ServerHttpObservationFilter;
 
 public class CustomAuthenticationFilter extends AbstractAuthenticationProcessingFilter {
 
@@ -52,6 +53,12 @@ public class CustomAuthenticationFilter extends AbstractAuthenticationProcessing
   public Authentication attemptAuthentication(HttpServletRequest request,
       HttpServletResponse response)
       throws AuthenticationException, IOException {
+    // The login is answered right here in the filter chain and never reaches a controller, so
+    // Spring MVC never learns a path pattern for it and http_server_requests would tag it
+    // uri="UNKNOWN". Naming it explicitly keeps the busiest endpoint -- and the one the k6 load
+    // test drives -- distinguishable in the Grafana dashboard.
+    ServerHttpObservationFilter.findObservationContext(request)
+        .ifPresent(context -> context.setPathPattern(request.getServletPath()));
     Credentials credentials = new ObjectMapper().readValue(request.getInputStream(),
         Credentials.class);
     return getAuthenticationManager()
