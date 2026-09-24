@@ -3,6 +3,7 @@ package com.example.jwt.core.generic;
 import com.example.jwt.domain.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MappedSuperclass;
@@ -22,7 +23,11 @@ public abstract class ExtendedAuditEntity extends ExtendedEntity {
   @Column(name = "created_at")
   private LocalDateTime createdAt;
 
-  @ManyToOne
+  // LAZY: the default EAGER fetch joined the auditing users, their auditing users and all of
+  // their roles and authorities into every User lookup -- a query Postgres needed ~0.7s just to
+  // plan, paid by the authorization filter on every authenticated request. Nothing reads these
+  // two fields; auditing only writes them.
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "created_by")
   @CreatedBy
   private User createdBy;
@@ -31,7 +36,7 @@ public abstract class ExtendedAuditEntity extends ExtendedEntity {
   @Column(name = "modified_at")
   private LocalDateTime modifiedAt;
 
-  @ManyToOne
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "last_modified_by")
   @LastModifiedBy
   private User lastModifiedBy;

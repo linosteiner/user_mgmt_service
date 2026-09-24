@@ -2,6 +2,7 @@ package com.example.jwt.core.security;
 
 import com.example.jwt.core.security.helpers.JwtProperties;
 import com.example.jwt.domain.user.UserService;
+import jakarta.servlet.DispatcherType;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -54,6 +55,10 @@ public class WebSecurityConfig {
             // without further edits. Paths are matched relative to the servlet context,
             // so this covers /api/actuator/** too.
             .requestMatchers("/actuator/**").permitAll()
+            // Error dispatches (Spring's forward to /error after a sendError) carry the
+            // status of the original request. Without this rule the forward itself was
+            // rejected, so e.g. a 405 or 404 reached the client as 403.
+            .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
             .anyRequest().authenticated())
         .addFilterAfter(
             new CustomAuthenticationFilter(loginPostMatcher, authenticationManager(), jwtProperties),
