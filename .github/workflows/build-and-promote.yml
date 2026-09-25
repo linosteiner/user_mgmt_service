@@ -1,6 +1,6 @@
 name: Build and Promote
 
-# Builds and publishes the image, then writes the new tag into the Ops repository.
+# Tests, builds and publishes the image, then writes the new tag into the Ops repository.
 # Nothing here talks to the cluster -- ArgoCD moves it by reconciling against that commit.
 
 on:
@@ -22,7 +22,21 @@ env:
   VALUES_FILE: charts/user-mgmt/values.yaml
 
 jobs:
+  # The Dockerfile builds with `-x test`, so without this job no test ever ran before an image
+  # was published. Same Gradle and JDK as the Dockerfile's build stage (the -alpine variant of
+  # this image cannot run JavaScript actions such as checkout).
+  test:
+    runs-on: ubuntu-latest
+    container: gradle:jdk25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Test
+        run: gradle test --no-daemon
+
   build-and-push:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
