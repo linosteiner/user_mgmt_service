@@ -146,6 +146,26 @@ class ModuleServiceClientTest {
   }
 
   @Test
+  void findModulesReadsTheWholeList() {
+    server.expect(once(), requestTo(BASE_URL + "/api/v1/modules"))
+        .andExpect(method(HttpMethod.GET))
+        .andRespond(withSuccess("[" + MODULE_JSON + "]", MediaType.APPLICATION_JSON));
+
+    assertThat(client.findModules()).extracting(ModuleDTO::code).containsExactly("CLOUD-ARCH");
+    server.verify();
+  }
+
+  @Test
+  void findModulesIsGuardedLikeEveryOtherCall() {
+    server.expect(times(3), requestTo(BASE_URL + "/api/v1/modules"))
+        .andRespond(withServiceUnavailable());
+
+    assertThatThrownBy(() -> client.findModules())
+        .isInstanceOf(ModuleServiceUnavailableException.class);
+    server.verify();
+  }
+
+  @Test
   void findModulesOfUserReadsTheAssignments() {
     server.expect(once(), requestTo(BASE_URL + "/api/v1/users/" + USER_ID + "/modules"))
         .andExpect(method(HttpMethod.GET))

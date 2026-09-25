@@ -47,6 +47,14 @@ public class ModuleServiceClient {
         .body(ModuleDTO.class));
   }
 
+  /** Every module the module_service offers: the list a client picks an assignment from. */
+  public List<ModuleDTO> findModules() {
+    return call(null, () -> restClient.get()
+        .uri("/api/v1/modules")
+        .retrieve()
+        .body(MODULE_LIST));
+  }
+
   public void assignModule(UUID userId, UUID moduleId) {
     call(moduleId, () -> restClient.put()
         .uri("/api/v1/users/{userId}/modules/{moduleId}", userId, moduleId)

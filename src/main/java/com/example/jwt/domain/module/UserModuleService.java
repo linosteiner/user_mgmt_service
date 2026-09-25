@@ -31,6 +31,10 @@ public class UserModuleService {
     return new UserModuleAssignmentDTO(userId, module);
   }
 
+  public List<ModuleDTO> findAvailableModules() {
+    return moduleServiceClient.findModules();
+  }
+
   public List<ModuleDTO> findModulesOfUser(UUID userId) {
     userService.findById(userId);
     return moduleServiceClient.findModulesOfUser(userId);
